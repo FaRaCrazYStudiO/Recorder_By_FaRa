@@ -11,7 +11,7 @@ LANGUAGES = {
         'install_recorder': 'Установить Рекордер',
         'welcome_header': 'Добро пожаловать в приложение Рекордера',
         'apply_button': 'Применить',
-        
+        'select_install_dir': 'Выберите папку для установки',
     },
     'en': {
         'documentation': 'Documentation',
@@ -19,6 +19,7 @@ LANGUAGES = {
         'install_recorder': 'Install Recorder',
         'welcome_header': 'Welcome to the Recorder Application',
         'apply_button': 'Apply',
+        'select_install_dir': 'Select Installation Folder',
     },
     'es': {
         'documentation': 'Documentación',
@@ -26,6 +27,7 @@ LANGUAGES = {
         'install_recorder': 'Instalar grabador',
         'welcome_header': 'Bienvenido a la Aplicación Grabadora',
         'apply_button': 'Aplicar',
+        'select_install_dir': 'Seleccione la carpeta de instalación',
     },
     'de': {
         'documentation': 'Dokumentation',
@@ -33,6 +35,7 @@ LANGUAGES = {
         'install_recorder': 'Recorder installieren',
         'welcome_header': 'Willkommen bei der Recorder-Anwendung',
         'apply_button': 'Anwenden',
+        'select_install_dir': 'Installationsordner auswählen',
     },
 }
 
@@ -85,7 +88,7 @@ class MainApp(QtWidgets.QWidget):
         self.doc_button = QtWidgets.QPushButton(LANGUAGES[self.language]['documentation'])
         self.doc_button.clicked.connect(self.show_documentation)
         layout.addWidget(self.doc_button)
-        
+
         # Support Author Button
         self.support_button = QtWidgets.QPushButton(LANGUAGES[self.language]['support_author'])
         self.support_button.clicked.connect(self.support_author)
@@ -187,12 +190,18 @@ class MainApp(QtWidgets.QWidget):
         QtWidgets.QMessageBox.information(self, LANGUAGES[self.language]['support_author'], "Спасибо за вашу поддержку!")
 
     def install_recorder(self):
-        command = [sys.executable, "-m", "PyInstaller", "--onefile", "--windowed", "--noconsole", "--name=ScreenRecorder", "GreenRecord.py"]
-        try:
-            result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            QtWidgets.QMessageBox.information(self, "Успех", "Рекордер успешно установлен!")
-        except subprocess.CalledProcessError as e:
-            QtWidgets.QMessageBox.critical(self, "Ошибка", f"Произошла ошибка при установке:\n{e.stderr.decode()}")
+        # Open a dialog to select the installation directory
+        install_dir = QtWidgets.QFileDialog.getExistingDirectory(self, LANGUAGES[self.language]['select_install_dir'], "")
+        if install_dir:
+            command = [sys.executable, "-m", "PyInstaller", "--onefile", 
+                       "--windowed", "--noconsole", 
+                       f"--name=ScreenRecorder", 
+                       "--distpath", install_dir, "GreenRecord.py"]
+            try:
+                result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                QtWidgets.QMessageBox.information(self, "Успех", "Рекордер успешно установлен!")
+            except subprocess.CalledProcessError as e:
+                QtWidgets.QMessageBox.critical(self, "Ошибка", f"Произошла ошибка при установке:\n{e.stderr.decode()}")
 
     def apply_language(self):
         selected_language = self.language_combo.currentText()
