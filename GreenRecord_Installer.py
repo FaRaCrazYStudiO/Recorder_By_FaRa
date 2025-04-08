@@ -3,14 +3,45 @@ import os
 import subprocess
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-from GreenRecord import LANGUAGES
+# Объявите LANGUAGES с поддерживаемыми языками и ключами
+LANGUAGES = {
+    'ru': {
+        'documentation': 'Документация',
+        'support_author': 'Поддержать автора',
+        'install_recorder': 'Установить Рекордер',
+        'welcome_header': 'Добро пожаловать в приложение Рекордера',
+        'apply_button': 'Применить',
+        
+    },
+    'en': {
+        'documentation': 'Documentation',
+        'support_author': 'Support Author',
+        'install_recorder': 'Install Recorder',
+        'welcome_header': 'Welcome to the Recorder Application',
+        'apply_button': 'Apply',
+    },
+    'es': {
+        'documentation': 'Documentación',
+        'support_author': 'Apoyar al autor',
+        'install_recorder': 'Instalar grabador',
+        'welcome_header': 'Bienvenido a la Aplicación Grabadora',
+        'apply_button': 'Aplicar',
+    },
+    'de': {
+        'documentation': 'Dokumentation',
+        'support_author': 'Autor unterstützen',
+        'install_recorder': 'Recorder installieren',
+        'welcome_header': 'Willkommen bei der Recorder-Anwendung',
+        'apply_button': 'Anwenden',
+    },
+}
 
 class MainApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         
         self.language = 'ru'  # Default language set to Russian
-        self.setWindowTitle("Настройка и Установка Рекордера")
+        self.setWindowTitle("Настройка и Установка Рекордера")  # Will be updated 
         self.setFixedSize(800, 600)  # Set window size to 800x600
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
@@ -33,11 +64,10 @@ class MainApp(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # Main layout
         layout = QtWidgets.QVBoxLayout()
 
         # Header
-        self.header = QtWidgets.QLabel("Добро пожаловать в приложение Рекордера")
+        self.header = QtWidgets.QLabel(LANGUAGES[self.language]['welcome_header'])
         self.header.setStyleSheet("font-size: 24px; color: #FFFFFF;")
         layout.addWidget(self.header)
 
@@ -47,22 +77,22 @@ class MainApp(QtWidgets.QWidget):
         layout.addWidget(self.language_combo)
 
         # Apply Language Button
-        self.apply_language_button = QtWidgets.QPushButton("Применить")
+        self.apply_language_button = QtWidgets.QPushButton(LANGUAGES[self.language]['apply_button'])
         self.apply_language_button.clicked.connect(self.apply_language)
         layout.addWidget(self.apply_language_button)
 
         # Documentation Button
-        self.doc_button = QtWidgets.QPushButton("Документация")
+        self.doc_button = QtWidgets.QPushButton(LANGUAGES[self.language]['documentation'])
         self.doc_button.clicked.connect(self.show_documentation)
         layout.addWidget(self.doc_button)
         
         # Support Author Button
-        self.support_button = QtWidgets.QPushButton("Поддержать автора")
+        self.support_button = QtWidgets.QPushButton(LANGUAGES[self.language]['support_author'])
         self.support_button.clicked.connect(self.support_author)
         layout.addWidget(self.support_button)
 
         # Install Button
-        self.install_button = QtWidgets.QPushButton("Установить Рекордер")
+        self.install_button = QtWidgets.QPushButton(LANGUAGES[self.language]['install_recorder'])
         self.install_button.clicked.connect(self.install_recorder)
         layout.addWidget(self.install_button)
 
@@ -112,13 +142,49 @@ class MainApp(QtWidgets.QWidget):
                 "7. **Support Author:**\n"
                 "   If you like the application, press the 'Support Author' button to contribute and help develop the project further."
             )
+        elif self.language == 'es':
+            return (
+                "Documentación de la Aplicación Grabadora\n\n"
+                "1. **Selección de Idioma:**\n"
+                "   Puedes seleccionar el idioma de la interfaz del menú desplegable. Idiomas disponibles: inglés, ruso, español y alemán.\n\n"
+                "2. **Grabación de Video y Audio:**\n"
+                "   Para comenzar a grabar, presiona el botón '▷'. La grabación de video y audio comenzará después de un pequeño temporizador.\n\n"
+                "3. **Detener Grabación:**\n"
+                "   Para detener la grabación, presiona el botón '□'. Esto guardará todo lo grabado hasta ahora.\n\n"
+                "4. **Pausar Grabación:**\n"
+                "   Puedes pausar la grabación presionando el botón '⏸️'. Presionarlo de nuevo reanudará la grabación.\n\n"
+                "5. **Configuraciones:**\n"
+                "   Ajusta los parámetros de grabación, como la frecuencia de muestreo de audio y la resolución de video, presionando el botón '⚙️'. Recuerda guardar los cambios.\n\n"
+                "6. **Documentación:**\n"
+                "   Haz clic en el botón 'Documentación' para abrir esta ventana y conocer las funcionalidades de la aplicación.\n\n"
+                "7. **Apoyar al Autor:**\n"
+                "   Si te gusta la aplicación, presiona el botón 'Apoyar al autor' para contribuir y ayudar a desarrollar el proyecto."
+            )
+        elif self.language == 'de':
+            return (
+                "Dokumentation der Recorder-Anwendung\n\n"
+                "1. **Sprache auswählen:**\n"
+                "   Sie können die Sprache der Benutzeroberfläche aus dem Dropdown-Menü auswählen. Verfügbare Sprachen: Englisch, Russisch, Spanisch und Deutsch.\n\n"
+                "2. **Video- und Audioaufnahme:**\n"
+                "   Um mit der Aufnahme zu beginnen, drücken Sie die Taste '▷'. Die Video- und Audioaufnahme beginnt nach einem kurzen Timer.\n\n"
+                "3. **Aufnahme stoppen:**\n"
+                "   Um die Aufnahme zu stoppen, drücken Sie die Taste '□'. Dies speichert alles, was bisher aufgezeichnet wurde.\n\n"
+                "4. **Aufnahme pausieren:**\n"
+                "   Sie können die Aufnahme pausieren, indem Sie die Taste '⏸️' drücken. Ein weiteres Drücken setzt die Aufnahme fort.\n\n"
+                "5. **Einstellungen:**\n"
+                "   Passen Sie die Aufnahmeparameter wie die Audioabtastfrequenz und die Videoauflösung an, indem Sie die Taste '⚙️' drücken. Denken Sie daran, Ihre Änderungen zu speichern.\n\n"
+                "6. **Dokumentation:**\n"
+                "   Klicken Sie auf die Schaltfläche 'Dokumentation', um dieses Fenster zu öffnen und mehr über die Funktionen der Anwendung zu erfahren.\n\n"
+                "7. **Autor unterstützen:**\n"
+                "   Wenn Ihnen die Anwendung gefällt, drücken Sie die Schaltfläche 'Autor unterstützen', um zu spenden und bei der Weiterentwicklung des Projekts zu helfen."
+            )
         # Add documentation for other languages, if needed...
 
     def show_documentation(self):
-        QtWidgets.QMessageBox.information(self, "Документация", "Посмотрите на документацию внутри приложения.")
+        QtWidgets.QMessageBox.information(self, LANGUAGES[self.language]['documentation'], "Посмотрите на документацию внутри приложения.")
 
     def support_author(self):
-        QtWidgets.QMessageBox.information(self, "Поддержка", "Спасибо за вашу поддержку!")
+        QtWidgets.QMessageBox.information(self, LANGUAGES[self.language]['support_author'], "Спасибо за вашу поддержку!")
 
     def install_recorder(self):
         command = [sys.executable, "-m", "PyInstaller", "--onefile", "--windowed", "--noconsole", "--name=ScreenRecorder", "GreenRecord.py"]
@@ -135,17 +201,18 @@ class MainApp(QtWidgets.QWidget):
         elif selected_language == "Русский":
             self.language = 'ru'
         elif selected_language == "Español":
-            self.language = 'es'  # Add Spanish support
+            self.language = 'es'  # Испанский язык
         elif selected_language == "Deutsch":
-            self.language = 'de'  # Add German support
+            self.language = 'de'  # Немецкий язык
         
-        # Update all UI elements based on the selected language
-        self.header.setText("Добро пожаловать в приложение Рекордера" if self.language == 'ru' else "Welcome to the Recorder Application")
+        # Обновление всех UI элементов на основе выбранного языка
+        self.setWindowTitle(LANGUAGES[self.language]['welcome_header'])  # Обновление заголовка окна
+        self.header.setText(LANGUAGES[self.language]['welcome_header'])
         self.doc_button.setText(LANGUAGES[self.language]['documentation'])
         self.support_button.setText(LANGUAGES[self.language]['support_author'])
         self.install_button.setText(LANGUAGES[self.language]['install_recorder'])
-        self.documentation_area.setPlainText(self.get_documentation())  # Update documentation
-        self.apply_language_button.setText("Применить")
+        self.documentation_area.setPlainText(self.get_documentation())  # Обновление документации
+        self.apply_language_button.setText(LANGUAGES[self.language]['apply_button'])
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
