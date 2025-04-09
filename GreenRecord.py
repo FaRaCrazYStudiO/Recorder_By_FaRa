@@ -6,9 +6,30 @@ import os
 import sounddevice as sd
 from scipy.io.wavfile import write
 from PyQt5 import QtWidgets, QtGui, QtCore
-
+import os
+import sys
+import numpy as np
+import pyautogui
+import cv2
+import sounddevice as sd
+from scipy.io.wavfile import write
+from PyQt5 import QtWidgets, QtCore
+from moviepy import VideoFileClip, AudioFileClip
+import sys
+import cv2
+import numpy as np
+import pyautogui
+import os
+import sounddevice as sd
+from scipy.io.wavfile import write
+from PyQt5 import QtWidgets, QtGui, QtCore
+import sys
+import numpy as np
+import sounddevice as sd
+from PyQt5 import QtWidgets, QtCore
+from scipy.io.wavfile import write
 # Default settings
-DEFAULT_AUDIO_FS = 44100  # Default sample rate
+DEFAULT_AUDIO_FS = 44100 # Default sample rate
 FALLBACK_AUDIO_FS = 22050  # Alternative sample rate if the default fails
 DEFAULT_VIDEO_RESOLUTION = (1920, 1080)  # Video resolution
 DEFAULT_OUTPUT_DIR = os.path.expanduser("~")  # Default output directory
@@ -146,6 +167,26 @@ class SettingsDialog(QtWidgets.QDialog):
             'output_dir': self.output_dir_input.text(),
             'language': self.language_combobox.currentText()
         }
+    def get_valid_sample_rate(self):
+        devices = sd.query_devices()
+        valid_sample_rates = []
+        for device in devices:
+            if device['max_input_channels'] > 0:  # Only input devices
+                valid_sample_rates.append(device['default_samplerate'])
+
+        # Choose the first valid sample rate
+        if valid_sample_rates:
+            print(f"Available sample rates: {valid_sample_rates}")
+            # Check if DEFAULT_AUDIO_FS is in valid sample rates
+            if DEFAULT_AUDIO_FS in valid_sample_rates:
+                return DEFAULT_AUDIO_FS
+            # If not, return FALLBACK_AUDIO_FS if it is valid
+            elif FALLBACK_AUDIO_FS in valid_sample_rates:
+                return FALLBACK_AUDIO_FS
+            else:
+                return int(valid_sample_rates[0])  # Use the first available
+        print("No valid sample rate found, defaulting to fall back.")
+        return FALLBACK_AUDIO_FS  # Default to FALLBACK_AUDIO_FS if not found
 
     def update_language(self):
         self.language = self.language_combobox.currentText()
@@ -187,6 +228,30 @@ class CountdownWidget(QtWidgets.QWidget):
             QtCore.QCoreApplication.processEvents()
             QtCore.QThread.sleep(1)
         self.hide()  # Hide the countdown after completion
+class AudioThread(QtCore.QThread):
+    audio_recorded = QtCore.pyqtSignal(np.ndarray)
+
+    def __init__(self, sampling_rate):
+        super().__init__()
+        self.sampling_rate = sampling_rate
+        self.recording = True
+
+    def run(self):
+        while self.recording:
+            try:
+                audio_data = sd.rec(int(self.sampling_rate), samplerate=self.sampling_rate, channels=1, dtype='int16')
+                sd.wait()  # Ждем завершения записи
+                self.audio_recorded.emit(audio_data)
+            except Exception as e:
+                print(f"Ошибка записи аудио: {e}")
+                self.recording = False
+
+    def stop_recording(self):
+        self.recording = False
+class VideoThread(QtCore.QThread):
+    def run(self):
+        # Код для записи видео
+        pass
 
 class RecorderApp(QtWidgets.QWidget):
     def __init__(self):
@@ -198,16 +263,16 @@ class RecorderApp(QtWidgets.QWidget):
         self.audio_buffer = []
         self.audio_thread = None
         self.countdown_widget = CountdownWidget()  # Initialize the countdown widget
-
+        self.audio_fs = DEFAULT_AUDIO_FS  # Ensure this is a supported sample rate
         # Default settings
         self.audio_fs = DEFAULT_AUDIO_FS
         self.video_resolution = DEFAULT_VIDEO_RESOLUTION
         self.output_dir = DEFAULT_OUTPUT_DIR
         self.language = 'en'  # Default language
-        
+        self.video_filename = os.path.join(self.output_dir, "Recording.mp4")      
         self.video_filename = os.path.join(self.output_dir, "Recording.avi")
         self.audio_filename = os.path.join(self.output_dir, "Recording.wav")
-
+        self.find_valid_sample_rate()
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.setGeometry(100, 100, 200, 50)
@@ -224,6 +289,19 @@ class RecorderApp(QtWidgets.QWidget):
         """)
 
         self.show()
+    def find_valid_sample_rate(self):
+        devices = sd.query_devices()
+        valid_sample_rates = []
+        
+        # Собираем поддерживаемые частоты дискретизации
+        for device in devices:
+            if device['max_input_channels'] > 0:  # Только входные устройства
+                valid_sample_rates.append(device['default_samplerate'])
+
+        # Выбираем первую допустимую частоту дискретизации
+        if valid_sample_rates:
+            self.audio_fs = int(valid_sample_rates[0])  # Используем первую доступную
+            print(f"Используемая частота дискретизации: {self.audio_fs}")
 
     def init_ui(self):
         layout = QtWidgets.QHBoxLayout()
@@ -267,9 +345,11 @@ class RecorderApp(QtWidgets.QWidget):
 
     def start_recording_indicators(self):
         self.countdown()  # Call the countdown function
-
+    def handle_audio_recorded(self, audio_data):
+        # Обработка записанных данных
+        print("Audio data recorded.")
     def record_video(self):
-        codec = cv2.VideoWriter_fourcc(*"XVID")
+        codec = cv2.VideoWriter_fourcc(*"mp4v")  # Use mp4v codec for mp4 videos
         out = cv2.VideoWriter(self.video_filename, codec, 20.0, self.video_resolution)
 
         while self.recording_video:
@@ -282,18 +362,6 @@ class RecorderApp(QtWidgets.QWidget):
             cv2.waitKey(1)
         out.release()
 
-    def record_audio(self):
-        while self.recording_audio:
-            if self.is_paused:
-                continue
-            audio = sd.rec(int(self.audio_fs), samplerate=self.audio_fs, channels=2, dtype='float64')
-            sd.wait()  # Wait until the recording is finished
-            self.audio_buffer.append(audio)
-
-        if self.audio_buffer:
-            audio_full = np.concatenate(self.audio_buffer, axis=0)
-            write(self.audio_filename, self.audio_fs, audio_full)
-
     def toggle_recording(self):
         if not self.recording_video and not self.recording_audio:
             self.recording_video = True
@@ -302,40 +370,33 @@ class RecorderApp(QtWidgets.QWidget):
             self.stop_button.setEnabled(True)
             self.pause_button.setEnabled(True)
 
-            self.start_recording_indicators()  # Show indicators before starting recording
+            # Запускаем запись в новом потоке
+            self.audio_thread = AudioThread(self.audio_fs)
+            self.audio_thread.start()
 
-            self.record_thread_video = QtCore.QThread()
-            self.record_thread_video.run = self.record_video
-            self.record_thread_video.start()
+            # Подключаем сигнал для обработки аудиозаписи
+            self.audio_thread.audio_recorded.connect(self.handle_audio_recorded)
 
-            # Create audio thread if it's not already created
-            if self.audio_thread is None or not self.audio_thread.isRunning():
-                self.audio_thread = QtCore.QThread()
-                self.audio_thread.run = self.record_audio
-                self.audio_thread.start()
+            # Начинаем запись видео
+            self.record_video()
         else:
             self.stop_recording()
 
     def stop_recording(self):
-        if self.recording_video or self.recording_audio:
-            self.recording_video = False
-            self.recording_audio = False
-            self.record_button.setEnabled(True)
-            self.stop_button.setEnabled(False)
-            self.pause_button.setEnabled(False)
+        self.recording_video = False
+        self.recording_audio = False
+        self.record_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.pause_button.setEnabled(False)
 
-            if self.record_thread_video:
-                self.record_thread_video.quit()
-                self.record_thread_video.wait()
-                self.record_thread_video = None  # Clean up the thread reference
-
-            if self.audio_thread:
-                self.audio_thread.quit()
-                self.audio_thread.wait()  # Wait for audio thread to complete
-                self.audio_thread = None  # Clean up the thread reference
+        # Остановить аудиопоток
+        if self.audio_thread is not None:
+            self.audio_thread.stop_recording()  # Останавливаем запись
+            self.audio_thread.quit()
+            self.audio_thread.wait()  # Ждем завершения потока
             
             # Show message box for stopped recording
-            self.show_message("Recording Stopped")
+        self.show_message("Recording Stopped")
 
     def toggle_pause(self):
         self.is_paused = not self.is_paused
